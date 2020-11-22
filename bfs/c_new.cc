@@ -1,129 +1,108 @@
 #include <iostream>
+#include <string>
 #include <map>
 #include <queue>
-#include <vector>
 #include <algorithm>
- 
 using namespace std;
- 
-bool OnBoard(int x, int y)
+
+
+// Check that new move is valid
+bool checkMove(string move)
 {
-    return x >= 0 && x < 8 && y >= 0 && y < 8;
+    return (
+        move[0] <= 'h' && move[0] >= 'a' &&
+        move[2] <= 'h' && move[2] >= 'a' &&
+        move[1] <= '8' && move[1] >= '1' &&
+        move[3] <= '8' && move[3] >= '1'
+    );
 }
- 
-int getOne(int i, int j, int k, int l)
-{
-    return i * 1000 + j * 100 + k * 10 + l;
+
+
+pair<int, int> getNewCoords(int i) {
+    int dx[] = {1, 2, 2, 1, -1, -2, -2, -1};
+    int dy[] = {2, 1, -1, -2, -2, -1, 1, 2};
+    return make_pair(dx[i], dy[i]);
 }
- 
-int getOne(vector<int> nums)
-{
-    return nums[0] * 1000 + nums[1] * 100 + nums[2] * 10 + nums[3];
-}
- 
-vector<int> getFour(int num)
-{
-    vector<int> ans(4);
-    ans[0] = num / 1000 % 10;
-    ans[1] = num / 100 % 10;
-    ans[2] = num / 10 % 10;
-    ans[3] = num / 1 % 10;
-    return ans;
-}
- 
-map<int, int> m;
-map<int, int> way;
-queue<int> q;
- 
-int dx[8] = { 1, 2,  1,  2, -1, -2, -1, -2 };
-int dy[8] = { 2, 1, -2, -1,  2,  1, -2, -1 };
- 
-void f(int curNum, int curKnight)
-{
-    vector<int> coord = getFour(curNum);
-    for (int i = 0; i < 8; ++i)
+
+
+void showAnswer(map<string, string> prev, string end) {
+    vector<string> way;
+    while (!end.empty())
     {
-        vector<int> newCoord = coord;
-        newCoord[curKnight] += dx[i];
-        newCoord[curKnight + 1] += dy[i];
-        int newNum = getOne(newCoord);
- 
-        if (m.find(newNum) != m.end() && m[newNum] > m[curNum] + 1)
-        {
-            m[newNum] = m[curNum] + 1;
-            way[newNum] = curNum;
-            q.push(newNum);
+        way.push_back(end);
+        end = (prev.count(end) != 0) ? prev[end] : "";
+    }
+    if (prev[end] != "")
+        way.push_back(prev[end]);
+    reverse(way.begin(), way.end());
+
+    for (int i = 0; i < way.size() - 1; i++) {
+        if (way[i][0] != way[i+1][0]) {
+            cout << "1 " << way[i+1][0] << way[i+1][1] << '\n';
+        } else {
+            cout << "2 " << way[i+1][2] << way[i+1][3] << '\n';
         }
     }
 }
 
- 
-int main()
-{
 
-    for (int i = 0; i < 8; ++i)
-    {
-        for (int j = 0; j < 8; ++j)
-        {
-            for (int k = 0; k < 8; ++k)
-            {
-                for (int l = 0; l < 8; ++l)
-                {
-                    if (i * 10 + j != k * 10 + l && 
-                        OnBoard(i, j) && OnBoard(k, l))
-                    {
-                        m[getOne(i, j, k, l)] = 1e9;
-                    }
-                }
-            }
-        }
-    }
- 
-    char c1, c2;
-    cin >> c1 >> c2;
-    int startX1 = c1 - 'a', startY1 = c2 - '1';
-    cin >> c1 >> c2;
-    int startX2 = c1 - 'a', startY2 = c2 - '1';
- 
-    cin >> c1 >> c2;
-    int finishX1 = c1 - 'a', finishY1 = c2 - '1';
-    cin >> c1 >> c2;
-    int finishX2 = c1 - 'a', finishY2 = c2 - '1';
- 
-    int start = getOne(startX1, startY1, startX2, startY2);
-    int finish = getOne(finishX1, finishY1, finishX2, finishY2);
-    m[start] = 0;
- 
-    q.push(start);
-    while (!q.empty())
-    {
-        int curNum = q.front();
-        q.pop();
+void bfs(string start, string end) {
+    map<string, string> prev;
+    map<string, int> dist;
+
+    dist[start] = 0;
     
-        f(curNum, 0);
-        f(curNum, 2);
-    }
- 
-    vector<int> ans;
-    int cur = finish;
-    while (cur != start)
+    queue<string> q;
+    q.push(start);
+
+    while(!q.empty())
     {
-        ans.emplace_back(cur);
-        cur = way[cur];
-    }
-    ans.emplace_back(start);
-    reverse(ans.begin(), ans.end());
- 
-    for (int i = 0; i < ans.size() - 1; ++i)
-    {
-        if (ans[i] / 100 != ans[i + 1] / 100)
-        {
-            cout << "1 " << char(ans[i + 1] / 1000 % 10 + 'a') << char(ans[i + 1] / 100 % 10 + '1');
+        string current = q.front();
+        q.pop();
+        for (int i = 0; i < 8; i++) {
+            string newMove = current;
+            auto newCoords = getNewCoords(i);
+            newMove[0] += newCoords.first;
+            newMove[1] += newCoords.second;
+
+            if (
+                checkMove(newMove) && dist.count(newMove) == 0 && 
+                newMove[0] != newMove[2] && newMove[1] != newMove[3]
+                ) {
+                    dist[newMove] = dist[current] + 1;
+                    prev[newMove] = current;
+                    q.push(newMove);
+                }
+
+            newMove = current;
+            newCoords = getNewCoords(i);
+            newMove[2] += newCoords.first;
+            newMove[3] += newCoords.second;
+
+            if (
+                checkMove(newMove) && dist.count(newMove) == 0 && 
+                newMove[0] != newMove[2] && newMove[1] != newMove[3]
+                ) {
+                    dist[newMove] = dist[current] + 1;
+                    prev[newMove] = current;
+                    q.push(newMove);
+                }
         }
-        else
-        {
-            cout << "2 " << char(ans[i + 1] / 10 % 10 + 'a') << char(ans[i + 1] / 1 % 10 + '1');
-        }
-        cout << endl;
     }
+
+    showAnswer(prev, end);
 }
+
+
+int main(int argc, char const *argv[])
+{
+    freopen("knight2.in", "r", stdin);
+    freopen("knight2.out", "w", stdout);
+    string s1, s2, e1, e2;
+    cin >> s1 >> s2 >> e1 >> e2;
+    s1 += s2;
+    e1 += e2;
+    bfs(s1, e1);
+    return 0;
+}
+
